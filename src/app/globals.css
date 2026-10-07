@@ -1,0 +1,123 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-primary: #000000;
+  --color-background: #FFFFFF;
+  --color-secondary: #666666;
+  --color-accent: #F5F5F5;
+  --color-surface: #F9F9F9;
+  --color-surface-dim: #E2E2E2;
+  --color-error: #BA1A1A;
+  --color-success: #2E7D32;
+  --color-border: #000000;
+  --color-text: #1A1C1C;
+  --color-text-muted: #666666;
+
+  --font-hanken: "Hanken Grotesk", sans-serif;
+
+  --spacing-sidebar: 240px;
+  --spacing-gutter: 40px;
+  --spacing-stack: 80px;
+  --spacing-margin-mobile: 20px;
+  --spacing-margin-desktop: 60px;
+}
+
+*,
+*::before,
+*::after {
+  border-radius: 0 !important;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-hanken);
+  color: var(--color-text);
+  background: var(--color-background);
+  font-size: 13px;
+  line-height: 1.6;
+  letter-spacing: 0.02em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+input, textarea, select {
+  font-family: inherit;
+  font-size: inherit;
+  letter-spacing: inherit;
+}
+
+::selection {
+  background: var(--color-primary);
+  color: var(--color-background);
+}
+
+/* Scroll reveal animation */
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.reveal.visible {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+/* Focus styles */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Editorial uppercase text */
+.text-editorial {
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  font-weight: 500;
+}
+
+.text-editorial-sm {
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 600;
+}
+
+/* Touch device detection */
+@media (pointer: coarse) {
+  * {
+    cursor: default !important;
+  }
+}
