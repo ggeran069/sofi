@@ -42,7 +42,13 @@ export async function POST(request: Request) {
     !process.env.BLOB_READ_WRITE_TOKEN ||
     process.env.BLOB_READ_WRITE_TOKEN.includes("placeholder")
   ) {
-    // Return a mock URL for local development
+    // Local development only — never silently store fake URLs in production
+    if (process.env.NODE_ENV === "production") {
+      return Response.json(
+        { error: "File storage is not configured (missing BLOB_READ_WRITE_TOKEN)" },
+        { status: 503 }
+      );
+    }
     const mockUrl = `https://mock-blob.local/portfolio/${Date.now()}-${file.name}`;
     return Response.json({ url: mockUrl });
   }

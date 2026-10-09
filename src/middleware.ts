@@ -1,5 +1,10 @@
-import { auth } from "@/lib/auth";
+import { authConfig } from "@/lib/auth.config";
 import { NextResponse } from "next/server";
+import NextAuth from "next-auth";
+
+// Uses the DB-free config (no Credentials provider) so the middleware bundle
+// stays free of Node/TCP dependencies and can run on Cloudflare Workers.
+const { auth } = NextAuth(authConfig);
 
 export default auth((req) => {
   const { pathname } = req.nextUrl;

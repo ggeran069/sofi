@@ -4,8 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "drizzle-kit push && tsx src/lib/db/setup.ts && next build",
-    "vercel-build": "drizzle-kit push && tsx src/lib/db/setup.ts && next build",
+    "build": "next build",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "db:setup": "tsx src/lib/db/setup.ts",
     "start": "next start",
     "lint": "next lint",
     "db:generate": "drizzle-kit generate",
@@ -16,6 +18,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.2.0",
+    "@opennextjs/cloudflare": "^1.20.9",
     "@vercel/blob": "^1.0.0",
     "bcryptjs": "^2.4.3",
     "drizzle-kit": "^0.30.0",
@@ -36,6 +40,7 @@
     "@types/react-dom": "^19.1.0",
     "postcss": "^8.5.0",
     "tailwindcss": "^4.1.0",
-    "typescript": "^5.8.0"
+    "typescript": "^5.8.0",
+    "wrangler": "^4.148.0"
   }
 }
