@@ -1,7 +1,9 @@
+import { drizzle as drizzleD1 } from "drizzle-orm/d1";
 import { drizzle as drizzlePostgresJs } from "drizzle-orm/postgres-js";
 import { drizzle as drizzleNeonHttp } from "drizzle-orm/neon-http";
 import postgres from "postgres";
 import { neon } from "@neondatabase/serverless";
+import { getCloudflareContext } from "@opennextjs/cloudflare";
 import * as schema from "./schema";
 
 const connectionString = process.env.DATABASE_URL ?? "";
@@ -15,12 +17,21 @@ function isNeonDatabase(url: string): boolean {
 }
 
 function createDb() {
-  if (!connectionString) {
-    throw new Error("DATABASE_URL is not set");
+  // 1. If running inside Cloudflare Workers / OpenNext with a D1 binding named 'DB'
+  try {
+    const context = getCloudflareContext();
+    if (context?.env?.DB) {
+      return drizzleD1(context.env.DB, { schema });
+    }
+  } catch {
+    // Not in Cloudflare runtime (e.g. build time or local node process)
   }
 
-  // Cloudflare Workers cannot open raw TCP connections, so Neon databases
-  // use the HTTP driver. Local/other Postgres databases keep postgres.js.
+  // 2. Fallback to PostgreSQL / Neon for local dev if DATABASE_URL is provided
+  if (!connectionString) {
+    throw new Error("DATABASE_URL is not set and Cloudflare D1 binding is not available.");
+  }
+
   if (isNeonDatabase(connectionString)) {
     return drizzleNeonHttp(neon(connectionString), { schema });
   }
@@ -34,18 +45,28 @@ function createDb() {
 
 type Db = ReturnType<typeof createDb>;
 
-let instance: Db | null = null;
+let pgInstance: Db | null = null;
 
 function getDb(): Db {
-  if (!instance) instance = createDb();
-  return instance;
+  // Always try to get the fresh Cloudflare D1 context if available (request-scoped)
+  try {
+    const context = getCloudflareContext();
+    if (context?.env?.DB) {
+      return drizzleD1(context.env.DB, { schema }) as unknown as Db;
+    }
+  } catch {
+    // Fallback to cached Postgres instance for local node environment
+  }
+
+  if (!pgInstance) pgInstance = createDb();
+  return pgInstance;
 }
 
-// Lazy proxy so that importing this module never connects (or throws) at
-// build time, when DATABASE_URL is not available.
+// Lazy proxy ensures that importing this module never executes or connects at build time
 export const db = new Proxy({} as Db, {
   get(_target, prop) {
-    const value = Reflect.get(getDb() as object, prop);
-    return typeof value === "function" ? value.bind(getDb()) : value;
+    const currentDb = getDb();
+    const value = Reflect.get(currentDb as object, prop);
+    return typeof value === "function" ? value.bind(currentDb) : value;
   },
 });
