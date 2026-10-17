@@ -1,4 +1,4 @@
-# SOFIA
+# SOFI
 
 Portfolio site for Sofia — styling, design, art direction. Next.js 15 + Drizzle + Postgres (Neon).
 
