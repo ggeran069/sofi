@@ -1,10 +1,12 @@
-import { drizzle as drizzleD1 } from "drizzle-orm/d1";
-import { drizzle as drizzlePostgresJs } from "drizzle-orm/postgres-js";
-import { drizzle as drizzleNeonHttp } from "drizzle-orm/neon-http";
+import { drizzle as drizzleD1, DrizzleD1Database } from "drizzle-orm/d1";
+import { drizzle as drizzlePostgresJs, PostgresJsDatabase } from "drizzle-orm/postgres-js";
+import { drizzle as drizzleNeonHttp, NeonHttpDatabase } from "drizzle-orm/neon-http";
 import postgres from "postgres";
 import { neon } from "@neondatabase/serverless";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import * as schema from "./schema";
+
+type AppDatabase = DrizzleD1Database<typeof schema> & PostgresJsDatabase<typeof schema> & NeonHttpDatabase<typeof schema>;
 
 const connectionString = process.env.DATABASE_URL ?? "";
 
@@ -17,17 +19,15 @@ function isNeonDatabase(url: string): boolean {
 }
 
 function createDb() {
-  // 1. If running inside Cloudflare Workers / OpenNext with a D1 binding named 'DB'
   try {
     const context = getCloudflareContext();
     if (context?.env?.DB) {
       return drizzleD1(context.env.DB, { schema });
     }
   } catch {
-    // Not in Cloudflare runtime (e.g. build time or local node process)
+    // Fallback if not in Cloudflare runtime
   }
 
-  // 2. Fallback to PostgreSQL / Neon for local dev if DATABASE_URL is provided
   if (!connectionString) {
     throw new Error("DATABASE_URL is not set and Cloudflare D1 binding is not available.");
   }
@@ -43,27 +43,26 @@ function createDb() {
   return drizzlePostgresJs(client, { schema });
 }
 
-type Db = ReturnType<typeof createDb>;
+let cachedDb: any = null;
 
-let pgInstance: Db | null = null;
-
-function getDb(): Db {
-  // Always try to get the fresh Cloudflare D1 context if available (request-scoped)
+function getDb() {
   try {
     const context = getCloudflareContext();
     if (context?.env?.DB) {
-      return drizzleD1(context.env.DB, { schema }) as unknown as Db;
+      return drizzleD1(context.env.DB, { schema });
     }
   } catch {
-    // Fallback to cached Postgres instance for local node environment
+    // Use cached fallback for local node environment
   }
 
-  if (!pgInstance) pgInstance = createDb();
-  return pgInstance;
+  if (!cachedDb) {
+    cachedDb = createDb();
+  }
+  return cachedDb;
 }
 
-// Lazy proxy ensures that importing this module never executes or connects at build time
-export const db = new Proxy({} as Db, {
+// Lazy proxy that delegates to the active runtime driver without union type clashes
+export const db = new Proxy({} as AppDatabase, {
   get(_target, prop) {
     const currentDb = getDb();
     const value = Reflect.get(currentDb as object, prop);
