@@ -1,4 +1,3 @@
-// Cloudflare Workers configuration for OpenNext (@opennextjs/cloudflare).
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "sofi",
@@ -8,5 +7,12 @@
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
-  }
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "sofi-db",
+      "database_id": "7cfaf8ed-f495-46e5-94c7-9ff362d9d450"
+    }
+  ]
 }
