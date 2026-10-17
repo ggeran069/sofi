@@ -14,5 +14,11 @@
       "database_name": "sofi-db",
       "database_id": "318f4542-ef62-4ad4-b2b5-d2564d7c6ed3"
     }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "BUCKET",
+      "bucket_name": "sofi-media"
+    }
   ]
 }

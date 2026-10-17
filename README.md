@@ -33,12 +33,17 @@ both are idempotent.
 
 ## Image uploads
 
-Uploads go to Vercel Blob (`@vercel/blob`), which is HTTP-based and works on
-Workers. It needs a read/write token from a Vercel Blob store:
+Uploads go to Cloudflare R2 (`sofi-media` bucket, binding `BUCKET` in
+`wrangler.jsonc`). One-time setup:
 
-- Local: `BLOB_READ_WRITE_TOKEN` in `.env` (and `.dev.vars` for preview). With
-  the placeholder value, uploads return a fake `mock-blob.local` URL.
-- Production: set it as a Worker secret. Without it the upload API returns 503.
+```bash
+npx wrangler r2 bucket create sofi-media
+```
+
+Objects are served back through the public `/api/media/[...key]` route, so URLs
+stored in the database are relative and work identically in dev, preview, and
+production. No storage credentials or env vars are needed — the Worker talks to
+R2 through its binding.
 
 ## Deploying to Cloudflare
 

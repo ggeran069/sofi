@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth";
-import { put } from "@vercel/blob";
+import { getCloudflareContext } from "@opennextjs/cloudflare";
 
 const ALLOWED_MIME_TYPES = [
   "image/jpeg",
@@ -37,25 +37,22 @@ export async function POST(request: Request) {
     );
   }
 
-  // Check if BLOB_READ_WRITE_TOKEN is a placeholder (local dev)
-  if (
-    !process.env.BLOB_READ_WRITE_TOKEN ||
-    process.env.BLOB_READ_WRITE_TOKEN.includes("placeholder")
-  ) {
-    // Local development only — never silently store fake URLs in production
-    if (process.env.NODE_ENV === "production") {
-      return Response.json(
-        { error: "File storage is not configured (missing BLOB_READ_WRITE_TOKEN)" },
-        { status: 503 }
-      );
-    }
-    const mockUrl = `https://mock-blob.local/portfolio/${Date.now()}-${file.name}`;
-    return Response.json({ url: mockUrl });
+  const { env } = getCloudflareContext() as any;
+  if (!env.BUCKET) {
+    return Response.json(
+      { error: "Object storage is not configured (missing R2 binding)" },
+      { status: 503 }
+    );
   }
 
-  const blob = await put(`portfolio/${Date.now()}-${file.name}`, file, {
-    access: "public",
+  // Keep object keys filesystem-safe and URL-friendly
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "-");
+  const key = `portfolio/${Date.now()}-${safeName}`;
+
+  await env.BUCKET.put(key, file, {
+    httpMetadata: { contentType: file.type },
   });
 
-  return Response.json({ url: blob.url });
+  // Relative URL served by /api/media — identical across dev, preview, production
+  return Response.json({ url: `/api/media/${key}` });
 }
