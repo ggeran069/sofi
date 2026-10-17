@@ -1,84 +1,64 @@
 import {
-  pgTable,
-  uuid,
+  sqliteTable,
   text,
-  varchar,
-  boolean,
   integer,
-  timestamp,
-  jsonb,
-  index,
-} from "drizzle-orm/pg-core";
+} from "drizzle-orm/sqlite-core";
 import { relations } from "drizzle-orm";
 
-export const users = pgTable("users", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  email: varchar("email", { length: 255 }).unique().notNull(),
+export const users = sqliteTable("users", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  email: text("email").unique().notNull(),
   password: text("password").notNull(),
-  name: varchar("name", { length: 255 }).notNull(),
-  role: varchar("role", { length: 50 }).default("admin").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  name: text("name").notNull(),
+  role: text("role").default("admin").notNull(),
+  createdAt: text("created_at").default(sql`(datetime('now'))`).notNull(),
 });
 
-export const categories = pgTable("categories", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  name: varchar("name", { length: 255 }).unique().notNull(),
-  slug: varchar("slug", { length: 255 }).unique().notNull(),
+export const categories = sqliteTable("categories", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  name: text("name").unique().notNull(),
+  slug: text("slug").unique().notNull(),
   description: text("description"),
   sortOrder: integer("sort_order").default(0).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: text("created_at").default(sql`(datetime('now'))`).notNull(),
 });
 
-export const contentItems = pgTable(
-  "content_items",
-  {
-    id: uuid("id").defaultRandom().primaryKey(),
-    title: varchar("title", { length: 500 }).notNull(),
-    slug: varchar("slug", { length: 500 }).unique().notNull(),
-    description: text("description"),
-    longDescription: text("long_description"),
-    categoryId: uuid("category_id").references(() => categories.id, {
-      onDelete: "set null",
-    }),
-    status: varchar("status", { length: 20 }).default("draft").notNull(),
-    featured: boolean("featured").default(false).notNull(),
-    thumbnailUrl: text("thumbnail_url"),
-    sortOrder: integer("sort_order").default(0).notNull(),
-    metadata: jsonb("metadata").default({}),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at")
-      .defaultNow()
-      .$onUpdate(() => new Date())
-      .notNull(),
-  },
-  (table) => [index("content_items_category_id_idx").on(table.categoryId)],
-);
+export const contentItems = sqliteTable("content_items", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  title: text("title").notNull(),
+  slug: text("slug").unique().notNull(),
+  description: text("description"),
+  longDescription: text("long_description"),
+  categoryId: text("category_id").references(() => categories.id, {
+    onDelete: "set null",
+  }),
+  status: text("status").default("draft").notNull(),
+  featured: integer("featured", { mode: "boolean" }).default(false).notNull(),
+  thumbnailUrl: text("thumbnail_url"),
+  sortOrder: integer("sort_order").default(0).notNull(),
+  metadata: text("metadata", { mode: "json" }).default("{}"),
+  createdAt: text("created_at").default(sql`(datetime('now'))`).notNull(),
+  updatedAt: text("updated_at").default(sql`(datetime('now'))`).notNull(),
+});
 
-export const contentImages = pgTable(
-  "content_images",
-  {
-    id: uuid("id").defaultRandom().primaryKey(),
-    contentItemId: uuid("content_item_id")
-      .references(() => contentItems.id, { onDelete: "cascade" })
-      .notNull(),
-    url: text("url").notNull(),
-    alt: text("alt").notNull(),
-    sortOrder: integer("sort_order").default(0).notNull(),
-  },
-  (table) => [index("content_images_item_id_idx").on(table.contentItemId)],
-);
-
-export const settings = pgTable("settings", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  key: varchar("key", { length: 100 }).unique().notNull(),
-  value: text("value").notNull(),
-  updatedAt: timestamp("updated_at")
-    .defaultNow()
-    .$onUpdate(() => new Date())
+export const contentImages = sqliteTable("content_images", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  contentItemId: text("content_item_id")
+    .references(() => contentItems.id, { onDelete: "cascade" })
     .notNull(),
+  url: text("url").notNull(),
+  alt: text("alt").notNull(),
+  sortOrder: integer("sort_order").default(0).notNull(),
 });
 
-// Relations
+export const settings = sqliteTable("settings", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  key: text("key").unique().notNull(),
+  value: text("value").notNull(),
+  updatedAt: text("updated_at").default(sql`(datetime('now'))`).notNull(),
+});
+
+// Relations remain identical
 export const categoriesRelations = relations(categories, ({ many }) => ({
   contentItems: many(contentItems),
 }));
