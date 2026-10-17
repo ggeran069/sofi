@@ -4,9 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build && npx @opennextjs/cloudflare build",
+    "build": "npx @opennextjs/cloudflare build",
+    "next:build": "next build",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
-    "deploy": "next build && npx @opennextjs/cloudflare build && wrangler deploy",
+    "deploy": "npx @opennextjs/cloudflare build && wrangler deploy",
     "db:setup": "tsx src/lib/db/setup.ts",
     "start": "next start",
     "lint": "next lint",
