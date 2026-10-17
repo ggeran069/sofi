@@ -27,5 +27,8 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|og-image\\.png).*)"],
+  // Exclude /api/auth — the middleware's auth() instance emits its own csrf
+  // Set-Cookie on auth routes, duplicating the handler's and breaking the
+  // CSRF check in the Workers runtime (MissingCSRF on login).
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|og-image\\.png|api/auth).*)"],
 };

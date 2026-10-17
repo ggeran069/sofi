@@ -1,4 +1,9 @@
 import type { NextConfig } from "next";
+import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
+
+// Exposes the Cloudflare bindings (D1 `DB`) to `next dev` via a local shim,
+// so `getCloudflareContext()` in src/lib/db/index.ts works outside Workers.
+initOpenNextCloudflareForDev();
 
 const nextConfig: NextConfig = {
   images: {
