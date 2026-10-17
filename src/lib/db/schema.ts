@@ -3,7 +3,7 @@ import {
   text,
   integer,
 } from "drizzle-orm/sqlite-core";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 
 export const users = sqliteTable("users", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -11,7 +11,9 @@ export const users = sqliteTable("users", {
   password: text("password").notNull(),
   name: text("name").notNull(),
   role: text("role").default("admin").notNull(),
-  createdAt: text("created_at").default(sql`(datetime('now'))`).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .default(sql`(unixepoch())`)
+    .notNull(),
 });
 
 export const categories = sqliteTable("categories", {
@@ -20,7 +22,9 @@ export const categories = sqliteTable("categories", {
   slug: text("slug").unique().notNull(),
   description: text("description"),
   sortOrder: integer("sort_order").default(0).notNull(),
-  createdAt: text("created_at").default(sql`(datetime('now'))`).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .default(sql`(unixepoch())`)
+    .notNull(),
 });
 
 export const contentItems = sqliteTable("content_items", {
@@ -37,8 +41,12 @@ export const contentItems = sqliteTable("content_items", {
   thumbnailUrl: text("thumbnail_url"),
   sortOrder: integer("sort_order").default(0).notNull(),
   metadata: text("metadata", { mode: "json" }).default("{}"),
-  createdAt: text("created_at").default(sql`(datetime('now'))`).notNull(),
-  updatedAt: text("updated_at").default(sql`(datetime('now'))`).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .default(sql`(unixepoch())`)
+    .notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .default(sql`(unixepoch())`)
+    .notNull(),
 });
 
 export const contentImages = sqliteTable("content_images", {
@@ -55,10 +63,12 @@ export const settings = sqliteTable("settings", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   key: text("key").unique().notNull(),
   value: text("value").notNull(),
-  updatedAt: text("updated_at").default(sql`(datetime('now'))`).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .default(sql`(unixepoch())`)
+    .notNull(),
 });
 
-// Relations remain identical
+// Relations
 export const categoriesRelations = relations(categories, ({ many }) => ({
   contentItems: many(contentItems),
 }));
