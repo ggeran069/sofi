@@ -8,21 +8,21 @@ export const dynamic = "force-dynamic";
 
 async function getStats() {
   const [totalResult] = await db
-    .select({ count: sql<number>`count(*)::int` })
+    .select({ count: sql<number>`cast(count(*) as int)` })
     .from(contentItems);
 
   const [publishedResult] = await db
-    .select({ count: sql<number>`count(*)::int` })
+    .select({ count: sql<number>`cast(count(*) as int)` })
     .from(contentItems)
     .where(eq(contentItems.status, "published"));
 
   const [draftResult] = await db
-    .select({ count: sql<number>`count(*)::int` })
+    .select({ count: sql<number>`cast(count(*) as int)` })
     .from(contentItems)
     .where(eq(contentItems.status, "draft"));
 
   const [categoryResult] = await db
-    .select({ count: sql<number>`count(*)::int` })
+    .select({ count: sql<number>`cast(count(*) as int)` })
     .from(categories);
 
   return {
