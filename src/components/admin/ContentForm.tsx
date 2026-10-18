@@ -130,7 +130,15 @@ export default function ContentForm({ initialData }: ContentFormProps) {
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data.error || "Something went wrong");
+        // Validation failures come back as { errors: { field: [messages] } }
+        if (data.errors) {
+          const messages = Object.entries(data.errors as Record<string, string[]>)
+            .map(([field, msgs]) => `${field}: ${msgs.join(", ")}`)
+            .join(" -- ");
+          setError(messages || "Validation failed");
+        } else {
+          setError(data.error || "Something went wrong");
+        }
         return;
       }
 

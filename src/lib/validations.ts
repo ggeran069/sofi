@@ -17,7 +17,12 @@ export const contentCreateSchema = z.object({
   categoryId: z.string().uuid().optional().nullable(),
   status: z.enum(["draft", "published"]),
   featured: z.boolean().default(false),
-  thumbnailUrl: z.string().url().optional().nullable(),
+  // Accepts absolute URLs and root-relative paths (/api/media/...), which is
+  // what the R2-backed uploader returns
+  thumbnailUrl: z
+    .union([z.string().url(), z.string().regex(/^\//, "Must be a URL or a /path")])
+    .optional()
+    .nullable(),
   sortOrder: z.number().int().default(0),
   metadata: z.record(z.unknown()).optional(),
   imageUrls: z.array(z.object({

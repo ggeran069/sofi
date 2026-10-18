@@ -10,6 +10,10 @@ const ALLOWED_MIME_TYPES = [
 
 const MAX_SIZE = 10 * 1024 * 1024; // 10MB
 
+// Images live in Workers KV (free tier, 25MB per value) instead of R2.
+// The client resizes to ≤2048px WebP before uploading, so values are
+// typically a few hundred KB — well inside KV free limits (1GB storage,
+// 1000 writes/day, 100k reads/day).
 export async function POST(request: Request) {
   const session = await auth();
   if (!session?.user) {
@@ -38,9 +42,9 @@ export async function POST(request: Request) {
   }
 
   const { env } = getCloudflareContext() as any;
-  if (!env.BUCKET) {
+  if (!env.MEDIA) {
     return Response.json(
-      { error: "Object storage is not configured (missing R2 binding)" },
+      { error: "Object storage is not configured (missing KV binding)" },
       { status: 503 }
     );
   }
@@ -49,8 +53,8 @@ export async function POST(request: Request) {
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "-");
   const key = `portfolio/${Date.now()}-${safeName}`;
 
-  await env.BUCKET.put(key, file, {
-    httpMetadata: { contentType: file.type },
+  await env.MEDIA.put(key, await file.arrayBuffer(), {
+    metadata: { contentType: file.type },
   });
 
   // Relative URL served by /api/media — identical across dev, preview, production
