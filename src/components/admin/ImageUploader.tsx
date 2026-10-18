@@ -9,6 +9,66 @@ interface ImageUploaderProps {
 const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 const MAX_SIZE = 10 * 1024 * 1024; // 10MB
 
+// Client-side resize targets. 2048px on the longest side is sharp enough for
+// full-bleed desktop layouts on retina screens while keeping files a few
+// hundred KB — comfortably inside Cloudflare's 100MB Worker request limit.
+const MAX_DIMENSION = 2048;
+const WEBP_QUALITY = 0.85;
+
+/**
+ * Downscale + re-encode to WebP before upload. The longest side is capped at
+ * MAX_DIMENSION and the aspect ratio is preserved, so landscape, portrait and
+ * square images all come out correctly. EXIF orientation is baked in
+ * (`imageOrientation: "from-image"`) so phone photos display upright on every
+ * device. Returns the original file untouched when resizing is unnecessary or
+ * unsupported.
+ */
+async function resizeImage(file: File): Promise<File | Blob> {
+  // Canvas flattens GIF animation, so animated images pass through as-is
+  if (file.type === "image/gif") return file;
+
+  let bitmap: ImageBitmap;
+  try {
+    bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+  } catch {
+    return file; // Undecodable in this browser — let the server validate it
+  }
+
+  // Already small enough and already WebP — no work to do
+  const longestSide = Math.max(bitmap.width, bitmap.height);
+  if (longestSide <= MAX_DIMENSION && file.type === "image/webp") {
+    bitmap.close();
+    return file;
+  }
+
+  const scale = Math.min(1, MAX_DIMENSION / longestSide);
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(bitmap.width * scale);
+  canvas.height = Math.round(bitmap.height * scale);
+
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    bitmap.close();
+    return file;
+  }
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  bitmap.close();
+
+  const blob = await new Promise<Blob | null>((resolve) =>
+    canvas.toBlob(resolve, "image/webp", WEBP_QUALITY)
+  );
+
+  // Transparency (PNG logos etc.) survives the WebP encode. Only use the
+  // re-encoded blob when it is actually smaller than the source.
+  if (blob && blob.size < file.size) {
+    const baseName = file.name.replace(/\.[^.]+$/, "");
+    return new File([blob], `${baseName}.webp`, { type: "image/webp" });
+  }
+  return file;
+}
+
 export default function ImageUploader({ onUpload }: ImageUploaderProps) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
@@ -43,8 +103,11 @@ export default function ImageUploader({ onUpload }: ImageUploaderProps) {
       reader.readAsDataURL(file);
 
       try {
+        // Resize/compress in the browser before it hits the network
+        const uploadBlob = await resizeImage(file);
+
         const formData = new FormData();
-        formData.append("file", file);
+        formData.append("file", uploadBlob);
 
         const res = await fetch("/api/admin/upload", {
           method: "POST",
@@ -134,6 +197,11 @@ export default function ImageUploader({ onUpload }: ImageUploaderProps) {
             </p>
             <p className="text-[11px] text-[var(--color-surface-dim)]">
               JPEG, PNG, WebP, GIF -- Max 10MB
+            </p>
+            <p className="text-[11px] text-[var(--color-surface-dim)] mt-1">
+              Tip: for the sharpest results, use an image at least 1600px on
+              its longest side. Images are automatically resized to 2048px and
+              compressed, so any size or orientation works.
             </p>
           </div>
         )}
